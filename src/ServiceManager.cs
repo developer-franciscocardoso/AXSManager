@@ -88,6 +88,10 @@ namespace AxsManager
             }
             foreach (var saved in Settings.Entries)
             {
+                if (!Settings.Roots.Any(root => Paths.Equal(root, saved.Root)))
+                {
+                    continue;
+                }
                 var found = result.Items.SingleOrDefault(x => x.Id == saved.Id);
                 var entry = saved.Copy();
                 entry.Available = found != null;

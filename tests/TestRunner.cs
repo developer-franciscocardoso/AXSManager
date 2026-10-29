@@ -37,6 +37,8 @@ namespace AxsManager.Tests
             Run("Failed restart restores the original CFG", FailedRestart);
             Run("Unchanged configuration does not restart services", UnchangedConfig);
             Run("Invalid ports remain visible and block duplicate creation", InvalidPortInventory);
+            Run("Removed roots no longer list saved services", RemovedRootInventory);
+            Run("Setup accepts removing the last root", EmptyRoots);
             Run("Port conflicts cannot hide ambiguous configurations", AmbiguousInventory);
             Run("Migration uses unique target names", MigrationNames);
             Run("Failed migration commit restores registrations and files", MigrationCommitFailure);
@@ -363,6 +365,48 @@ namespace AxsManager.Tests
                     new ServiceSnapshot { Name = "test", State = "Running" }, system),
                     "Identical configuration reported changes.");
                 Assert(system.Running && system.Stops == 0, "No-op update interrupted service.");
+            }
+        }
+
+        private static void RemovedRootInventory()
+        {
+            using (var temp = new TempFolder())
+            {
+                var settings = MigrationFixture(temp.Path);
+                var entry = settings.Entries[0];
+                var otherRoot = Path.Combine(temp.Path, "OtherFich");
+                Directory.CreateDirectory(otherRoot);
+                settings.Roots.Add(entry.Root.ToUpperInvariant() + "\\");
+                settings.Roots.Add(otherRoot);
+                var manager = new ServiceManager(settings, new StateStore(),
+                    new FakeServices());
+                Assert(manager.Refresh().Items.Count == settings.Entries.Count,
+                    "Configured but unavailable roots lost saved services.");
+                settings.Roots.RemoveAt(0);
+                Assert(manager.Refresh().Items.Count == 0,
+                    "Removed root still lists saved services.");
+                settings.Roots.Clear();
+                Assert(manager.Refresh().Items.Count == 0,
+                    "Empty root list still lists saved services.");
+                Assert(File.Exists(entry.ConfigPath), "Existing CFG was deleted.");
+                Assert(manager.TrackedEntries().Count == settings.Entries.Count,
+                    "Removing a root lost tracked configuration metadata.");
+                settings.Roots.Add(entry.Root);
+                Assert(manager.Refresh().Items.Count == settings.Entries.Count,
+                    "Re-added root did not restore saved services.");
+            }
+        }
+
+        private static void EmptyRoots()
+        {
+            using (var temp = new TempFolder())
+            {
+                File.WriteAllText(Path.Combine(temp.Path, "ArtExecSvc.exe"), "");
+                var settings = new ManagerSettings {
+                    ArtsoftFolder = temp.Path, FormsFolder = temp.Path,
+                    TempFolder = temp.Path, ServerAddress = "localhost"
+                };
+                settings.Validate();
             }
         }
 

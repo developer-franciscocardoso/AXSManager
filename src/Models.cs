@@ -76,10 +76,6 @@ namespace AxsManager
                 throw new InvalidOperationException(
                     "Select the folder containing ArtExecSvc.exe.");
             }
-            if (Roots.Count == 0)
-            {
-                throw new InvalidOperationException("Select at least one Fich folder.");
-            }
             foreach (var root in Roots)
             {
                 if (!Directory.Exists(root))
