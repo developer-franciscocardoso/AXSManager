@@ -293,6 +293,39 @@ namespace AxsManager
 
         private string Value(string key) { return fields[key].Text.Trim(); }
 
+        internal static bool ConfirmExistingPermissions(IWin32Window owner,
+            string folder, InstallationPermissionsException error)
+        {
+            var message = error.Message + "\r\n\r\n" +
+                "Other Windows users may change code or configuration run " +
+                "by the services. Continue only if you trust everyone with " +
+                "write access.\r\n\r\n" +
+                "Continue anyway and remember this choice for:\r\n" +
+                folder + "\r\n\r\nYou can turn it off in Setup.";
+            return MessageBox.Show(owner, message,
+                "Existing ARTSoft permissions", MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2)
+                == DialogResult.Yes;
+        }
+
+        private bool CheckExecutablePermissions(ManagerSettings settings)
+        {
+            try
+            {
+                Access.RequireInstallationFile(settings.Executable, settings);
+                return true;
+            }
+            catch (InstallationPermissionsException error)
+            {
+                if (!ConfirmExistingPermissions(this,
+                    settings.ArtsoftFolder, error)) { return false; }
+                settings.TrustedPermissionsFolder = settings.ArtsoftFolder;
+                existingPermissions.Checked = true;
+                Access.RequireInstallationFile(settings.Executable, settings);
+                return true;
+            }
+        }
+
         private void Save()
         {
             try
@@ -343,6 +376,12 @@ namespace AxsManager
                 }
                 settings.XmlAllowedClients = Value("XmlAllowedClients");
                 settings.Validate();
+                bool revokingConsent = !existingPermissions.Checked &&
+                    !string.IsNullOrEmpty(original.TrustedPermissionsFolder) &&
+                    Paths.Equal(original.TrustedPermissionsFolder,
+                        settings.ArtsoftFolder);
+                if (!revokingConsent &&
+                    !CheckExecutablePermissions(settings)) { return; }
                 Result = settings;
                 DialogResult = DialogResult.OK;
             }

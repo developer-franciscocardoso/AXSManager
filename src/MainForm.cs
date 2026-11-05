@@ -767,15 +767,8 @@ namespace AxsManager
                     throw permissionError;
                 }
                 var folder = manager.Settings.ArtsoftFolder;
-                var message = "This ARTSoft installation permits other Windows users to change " +
-                    "its files:\r\n\r\n" + folder + "\r\n\r\n" +
-                    "Those users may change code or configuration run by the services. " +
-                    "Continue only if you trust everyone with write access.\r\n\r\n" +
-                    "Keep the existing permissions and remember this choice for this installation? " +
-                    "You can turn it off in Setup.";
-                if (MessageBox.Show(this, message, "Existing ARTSoft permissions",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
-                    MessageBoxDefaultButton.Button2) != DialogResult.Yes) { return false; }
+                if (!SetupForm.ConfirmExistingPermissions(this, folder,
+                    permissionError)) { return false; }
                 var expectedRevision = manager.Settings.Revision;
                 var settings = await Task.Run(() =>
                 {

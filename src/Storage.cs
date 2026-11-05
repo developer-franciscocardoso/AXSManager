@@ -190,7 +190,8 @@ namespace AxsManager
                 {
                     throw new InstallationPermissionsException(
                         "Unsafe write permissions on " + path +
-                        ". Restrict writes to administrators and the service account before continuing.");
+                        ". Users outside the administrators and service account " +
+                        "can modify or replace files.");
                 }
             }
         }
